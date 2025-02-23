@@ -1,0 +1,32 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  
+  html, body {
+    width: 100%;
+    height: 100%;
+  }
+  
+  body {
+    position: relative; font-family: calibri, sans-serif; overflow: hidden;
+  }
+
+  .frozen-treeview-container {
+    position: absolute;
+    top: 30px;
+    bottom: 30px;
+    left: 30px;
+    right: 30px;
+    background-color: yellow;
+  }
+
+  .grid-item {
+    position: absolute;
+  }
+
+  svg.rotated {
+    transform: rotate(90deg);
+}
