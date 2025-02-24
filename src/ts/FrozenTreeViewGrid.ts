@@ -1,5 +1,5 @@
 import { FrozenTreeView } from './FrozenTreeView';
-
+import { ProxyHelper } from './ProxyHelper'; // used for logging variable name and value
 export class FrozenTreeViewGrid {
     public treeView: FrozenTreeView;
     public textHeight: number = 16;
@@ -12,8 +12,16 @@ export class FrozenTreeViewGrid {
     public verticalArrow_RowIncrement: number = 10;
     public scrollColumnIncrement: number = 1;
     public fetchInProgress: boolean = false;
+    public logString: string = "";
+
+
     constructor(treeView: FrozenTreeView) {
         this.treeView = treeView;
+
+        // log
+        this.logString = "";
+        this.logString += 'FrozenTreeViewGrid.constructor();\r\n';
+        this.logString += 'this.initializeAndRenderGrid();\r\n';
         this.initializeAndRenderGrid();
 
         this.treeView.layout.scrollableBody.addEventListener("wheel", (event: WheelEvent) => {
@@ -55,7 +63,13 @@ export class FrozenTreeViewGrid {
 
     private async initializeAndRenderGrid() {
         let parentId = 0;
-        //const data = await this.initializeGrid(parentId, this.recordsPerPage, this.columnsPerPage);
+        
+        // log
+        this.logString += "this.initializeGrid(parentId, this.recordsPerPage, this.columnsPerPage);\r\n";
+        this.logString += "\t" + ProxyHelper.formatVar("parentId", parentId);
+        this.logString += "\t" + ProxyHelper.formatVar("this.recordsPerPage", this.recordsPerPage);
+        this.logString += "\t" + ProxyHelper.formatVar("this.columnsPerPage", this.columnsPerPage);
+
         const { recordCount, gridData } = await this.initializeGrid(parentId, this.recordsPerPage, this.columnsPerPage);
         this.virtualRecordCount = recordCount; // number of rows in the virtual tree at it's current drill state.
         console.log(`virtualRecordCount ${this.virtualRecordCount} updated during initializeAndRenderGrid()`);
@@ -118,43 +132,57 @@ export class FrozenTreeViewGrid {
         }
     }
 
+
     private async initializeGrid(parentId: number, rowCount: number, columnCount: number) {
-        const response = await fetch(`https://localhost:7264/api/GetAnalyticalData/initialize-grid?rootParentID=${parentId}&rowCount=${rowCount}&columnCount=${columnCount}`, {
-            method: "GET",
+
+        // log
+        this.logString += "https://localhost:7264/api/GetAnalyticalData/initialize-grid\r\n";
+        this.logString += "\t" + ProxyHelper.formatVar("parentId", parentId);
+        this.logString += "\t" + ProxyHelper.formatVar("rowCount", rowCount);
+        this.logString += "\t" + ProxyHelper.formatVar("columnCount", columnCount);
+        console.log(this.logString);
+    
+        // Construct the request body
+        const requestBody = {
+            rootParentID: parentId,
+            rowCount: rowCount,
+            columnCount: columnCount,
+            log1: this.logString // Now sent in the request body instead of URL
+        };
+    
+        // Fetch API call
+        const response = await fetch("https://localhost:7264/api/GetAnalyticalData/initialize-grid", {
+            method: "POST",
             credentials: "include", // Ensures cookies (session) are sent
             headers: {
                 "Content-Type": "application/json"
-            }
+            },
+            body: JSON.stringify(requestBody) // Sending JSON payload
         });
     
         if (!response.ok) {
             throw new Error(`API request failed with status: ${response.status}`);
         }
     
+        // Parse response
         const data = await response.json();
-        
-        // Extract the integer and list separately
-        const recordCount = data.recordCount; console.log(`recordCount ${recordCount} from initializeGrid()`);
-        const gridData = data.data; console.log(`data ${data} from initializeGrid()`);
     
-        return { recordCount, gridData };
+        return { recordCount: data.recordCount, gridData: data.data };
     }
-
     
     public async scrollDown()
     {
         if(this.fetchInProgress){
-            console.log("skip");
             return;
         }  
-        console.log("fetch");
+
         this.fetchInProgress = true;
         const data = await this.scrollGrid(this.firstVisibleTreeRow, this.recordsPerPage, this.firstVisibleTreeColumn, this.columnsPerPage);
         this.renderGrid(data, this.firstVisibleTreeColumn, this.recordsPerPage, this.firstVisibleTreeColumn, this.columnsPerPage);
         this.fetchInProgress = false;
     }
+
     private async scrollGrid(firstTreeRow: number, rowCount: number, firstTreeColumn: number, columnCount: number){
-        //const response = await fetch(`https://localhost:7264/api/GetAnalyticalData/scroll-grid?firstTreeRow=${firstTreeRow}&rowCount=${rowCount}&firstTreeColumn=${firstTreeColumn}&columnCount=${columnCount}`);
         const response = await fetch(`https://localhost:7264/api/GetAnalyticalData/scroll-grid?firstTreeRow=${firstTreeRow}&rowCount=${rowCount}&firstTreeColumn=${firstTreeColumn}&columnCount=${columnCount}`, {
             method: "GET",
             credentials: "include", // Ensures cookies (session) are sent
@@ -339,7 +367,6 @@ export class FrozenTreeViewGrid {
     async toggleChildRecords(arrow: SVGElement, row: HTMLElement & { label?: HTMLElement, arrow?: SVGElement }) {
         // When the user clicks the arrow of a node to expand or contract its child nodes
 
-        //const isRight = arrow.style.transform === '' || arrow.style.transform === 'rotate(0deg)'; // Arrow points right vs down?
         const isRight = !arrow.classList.contains('rotated');
         if (isRight) { // Arrow points right (meaning that the clicked node is contracted)
             arrow.classList.add('rotated'); // Add the rotated class to rotate the arrow down
@@ -414,6 +441,12 @@ export class FrozenTreeViewGrid {
      * The number of records that will be displayed on a single page.
      */
     get recordsPerPage(): number {
+
+        // log
+        this.logString += `this.recordsPerPage = Math.ceil(this.gridHeight / this.textHeight);\r\n`;
+        this.logString += "\t" + ProxyHelper.formatVar("this.gridHeight", this.gridHeight);
+        this.logString += "\t" + ProxyHelper.formatVar("this.textHeight", this.textHeight);
+
         return Math.ceil(this.gridHeight / this.textHeight);
     }
 
@@ -421,6 +454,12 @@ export class FrozenTreeViewGrid {
      * The number of columns that will be displayed on a single page.
      */
     get columnsPerPage(): number {
+
+        // log
+        this.logString += `this.columnsPerPage = Math.ceil(this.gridWidth / this.columnWidth);\r\n`;
+        this.logString += "\t" + ProxyHelper.formatVar("this.gridWidth", this.gridWidth);
+        this.logString += "\t" + ProxyHelper.formatVar("this.columnWidth", this.columnWidth);
+
         return Math.ceil(this.gridWidth / this.columnWidth);
     }
 
