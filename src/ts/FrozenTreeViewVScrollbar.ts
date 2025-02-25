@@ -1,4 +1,5 @@
 import { FrozenTreeViewLayout } from './FrozenTreeViewLayout';
+import { ProxyHelper } from './ProxyHelper'; // used for logging variable name and value
 
 export class FrozenTreeViewVScrollbar {
   public svgUpArrow: SVGSVGElement;
@@ -27,7 +28,17 @@ export class FrozenTreeViewVScrollbar {
       console.log("Up arrow clicked");
       let grid = this.layout.frozenTreeView.grid;
       let recordIncrement = -grid.verticalArrow_RowIncrement;
-      grid.firstVisibleTreeRow = grid.firstVisibleTreeRow + recordIncrement;
+      let firstVisibleTreeRow = grid.firstVisibleTreeRow;
+      grid.firstVisibleTreeRow = firstVisibleTreeRow + recordIncrement;
+
+      grid.logString = "";
+      grid.logString += "FrozenTreeViewVScrollbar.svgUpArrow.addEventListener('click')\r\n"
+      grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeRow);
+      grid.logString += "\t" + ProxyHelper.formatVar("recordIncrement", recordIncrement);
+      grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeRow", grid.firstVisibleTreeRow);
+
+      grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
       grid.scrollDown();
     });
 
@@ -49,10 +60,19 @@ export class FrozenTreeViewVScrollbar {
 
     this.svgDownArrow.addEventListener('click', () => {
       console.log("Down arrow clicked");
-      console.log(`this.layout.frozenTreeView.grid.verticalArrow_RowIncrement: ${this.layout.frozenTreeView.grid.verticalArrow_RowIncrement}`);
       let grid = this.layout.frozenTreeView.grid;
       let recordIncrement = grid.verticalArrow_RowIncrement;
-      grid.firstVisibleTreeRow = grid.firstVisibleTreeRow + recordIncrement;
+      let firstVisibleTreeRow = grid.firstVisibleTreeRow;
+      grid.firstVisibleTreeRow = firstVisibleTreeRow + recordIncrement;
+
+      grid.logString = "";
+      grid.logString += "FrozenTreeViewVScrollbar.svgDownArrow.addEventListener('click')\r\n"
+      grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeRow);
+      grid.logString += "\t" + ProxyHelper.formatVar("recordIncrement", recordIncrement);
+      grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeRow", grid.firstVisibleTreeRow);
+
+      grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
       grid.scrollDown();
     });
 
@@ -88,19 +108,30 @@ export class FrozenTreeViewVScrollbar {
     const startTop = this.thumb.offsetTop;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
+
+        // Slide the thumb
         const deltaY = moveEvent.clientY - startY;
         let newTop = startTop + deltaY;
         const maxTop = this.thumbTrack.clientHeight - this.thumb.clientHeight;
-        newTop = Math.max(0, Math.min(newTop, maxTop));
-        this.thumb.style.top = `${newTop}px`;
+        let thumbTop = Math.max(0, Math.min(newTop, maxTop));
+        this.thumb.style.top = `${thumbTop}px`;
 
-        // Log the top position of the thumb and the height difference
-        console.log(`Thumb top position: ${newTop}px`);
-        console.log(`Height difference: ${this.thumbTrack.getBoundingClientRect().height - this.thumb.clientHeight}px`);
-
+        // Calculate firstVisibleTreeRow
         let grid = this.layout.frozenTreeView.grid;
-        grid.firstVisibleTreeRow = Math.floor((grid.virtualRecordCount*newTop)/(this.thumbTrack.getBoundingClientRect().height - this.thumb.clientHeight));
-        console.log(`${grid.firstVisibleTreeRow} = Math.floor((${grid.virtualRecordCount}*${newTop})/(${this.thumbTrack.getBoundingClientRect().height} - ${this.thumb.clientHeight}));`);
+        let upDown = (deltaY > 0 ) ? "Down" : "Up";
+        let netSliderHeight = (this.thumbTrack.getBoundingClientRect().height - this.thumb.clientHeight);
+        grid.firstVisibleTreeRow = Math.floor(grid.virtualRecordCount*(thumbTop/netSliderHeight));
+        grid.firstVisibleTreeRow = (grid.firstVisibleTreeRow > (grid.virtualRecordCount - grid.recordsPerPage)) ? (grid.virtualRecordCount - grid.recordsPerPage) : grid.firstVisibleTreeRow;
+
+        grid.logString = "";
+        grid.logString += `**Dragged VScrollbar ${upDown}**\r\n`;
+        grid.logString += ` thumbTop: ${thumbTop}\r\n`;
+        grid.logString += ` netSliderHeight: ${netSliderHeight}\r\n`;
+        grid.logString += ` grid.virtualRecordCount: ${grid.virtualRecordCount}\r\n`;
+        grid.logString += ` grid.firstVisibleTreeRow: ${grid.firstVisibleTreeRow}\r\n`;
+
+        grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+        
         grid.scrollDown();
     };
 
@@ -121,13 +152,33 @@ export class FrozenTreeViewVScrollbar {
       console.log("Page up");
       let grid = this.layout.frozenTreeView.grid;
       let recordIncrement = -(grid.recordsPerPage - 1);
-      grid.firstVisibleTreeRow = grid.firstVisibleTreeRow + recordIncrement;
+      let firstVisibleTreeRow = grid.firstVisibleTreeRow;
+      grid.firstVisibleTreeRow = firstVisibleTreeRow + recordIncrement;
+
+      grid.logString = "";
+      grid.logString += "FrozenTreeViewVScrollbar.onThumbTrackClick() **Page Up**\r\n";
+      grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeRow);
+      grid.logString += "\t" + ProxyHelper.formatVar("recordIncrement", recordIncrement);
+      grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeRow", grid.firstVisibleTreeRow);
+
+      grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
       grid.scrollDown();
     } else if (event.clientY > thumbRect.bottom) {
       console.log("Page down");
       let grid = this.layout.frozenTreeView.grid;
       let recordIncrement = (grid.recordsPerPage - 1);
-      grid.firstVisibleTreeRow = grid.firstVisibleTreeRow + recordIncrement;
+      let firstVisibleTreeRow = grid.firstVisibleTreeRow;
+      grid.firstVisibleTreeRow = firstVisibleTreeRow + recordIncrement;
+
+      grid.logString = "";
+      grid.logString += "FrozenTreeViewVScrollbar.onThumbTrackClick() **Page Down**\r\n"
+      grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeRow);
+      grid.logString += "\t" + ProxyHelper.formatVar("recordIncrement", recordIncrement);
+      grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeRow", grid.firstVisibleTreeRow);
+
+      grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
       grid.scrollDown();
     }
   }

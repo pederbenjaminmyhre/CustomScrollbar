@@ -21,10 +21,12 @@ export class FrozenTreeViewGrid {
         this.logString += 'FrozenTreeViewGrid.constructor();\r\n'
         this.initializeAndRenderGrid();
 
+        // ScrollableBody wheelTurn
         this.treeView.layout.scrollableBody.addEventListener("wheel", (event: WheelEvent) => {
             console.log(`Mouse wheel moved over #myElement: deltaY=${event.deltaY}`);
             this.onWheelTurn(event);
         });
+        // FrozenBody wheelTurn
         this.treeView.layout.frozenBody.addEventListener("wheel", (event: WheelEvent) => {
             console.log(`Mouse wheel moved over #myElement: deltaY=${event.deltaY}`);
             this.onWheelTurn(event);
@@ -32,19 +34,39 @@ export class FrozenTreeViewGrid {
     }
   
     private onWheelTurn(event: WheelEvent) {
-        if (!event.altKey) {
+        if (!event.altKey) { // Vertical scrolling
             if (event.deltaY > 0) {
                 let recordIncrement = this.recordsPerPage - 1;
-                this.firstVisibleTreeRow = this.firstVisibleTreeRow + recordIncrement;
+                let firstVisibleTreeRow = this.firstVisibleTreeRow;
+                this.firstVisibleTreeRow = firstVisibleTreeRow + recordIncrement;
+
+                this.logString = "";
+                this.logString += "**WheelTurn Down**\r\n";
+                this.logString += "onWheelTurn();\r\n";
+                this.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeRow);
+                this.logString += "\t" + ProxyHelper.formatVar("recordIncrement", recordIncrement);
+                this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeRow", this.firstVisibleTreeRow);
+                this.logString += "this.scrollDown();\r\n";
+
                 this.scrollDown();
             }
             if (event.deltaY < 0) {
                 let recordIncrement = this.recordsPerPage - 1;
+                let firstVisibleTreeRow = this.firstVisibleTreeRow;
                 this.firstVisibleTreeRow = this.firstVisibleTreeRow - recordIncrement;
+
+                this.logString = "";
+                this.logString += "** WheelTurn Up;\r\n";
+                this.logString += "onWheelTurn();\r\n";
+                this.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeRow);
+                this.logString += "\t" + ProxyHelper.formatVar("recordIncrement", recordIncrement);
+                this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeRow", this.firstVisibleTreeRow);
+                this.logString += "this.scrollDown();\r\n";
+
                 this.scrollDown();
             }
         }
-        else {
+        else { // Horizontal scrolling
             if (event.deltaY > 0) {
                 let columnIncrement = this.columnsPerPage - 1;
                 this.firstVisibleTreeColumn = this.firstVisibleTreeColumn + columnIncrement;
@@ -128,36 +150,6 @@ export class FrozenTreeViewGrid {
             return 0;
         }
     }
-/*
-    private async initializeGrid(parentId: number, rowCount: number, columnCount: number) {
-
-        this.logString += "await fetch(`https://localhost:7264/api/GetAnalyticalData/initialize-grid?rootParentID=${parentId}&rowCount=${rowCount}&columnCount=${columnCount}`\r\n";
-        this.logString += "\t" + ProxyHelper.formatVar("parentId", parentId);
-        this.logString += "\t" + ProxyHelper.formatVar("rowCount", rowCount);
-        this.logString += "\t" + ProxyHelper.formatVar("columnCount", columnCount);
-        console.log(this.logString);
-        this.logString = "";
-
-        const response = await fetch(`https://localhost:7264/api/GetAnalyticalData/initialize-grid?rootParentID=${parentId}&rowCount=${rowCount}&columnCount=${columnCount}`, {
-            method: "GET",
-            credentials: "include", // Ensures cookies (session) are sent
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-    
-        if (!response.ok) {
-            throw new Error(`API request failed with status: ${response.status}`);
-        }
-    
-        const data = await response.json();
-        
-        // Extract the integer and list separately
-        const recordCount = data.recordCount; console.log(`recordCount ${recordCount} from initializeGrid()`);
-        const gridData = data.data; console.log(`data ${data} from initializeGrid()`);
-    
-        return { recordCount, gridData };
-    }*/
 
     private async initializeGrid(parentId: number, rowCount: number, columnCount: number) {
 
@@ -199,15 +191,23 @@ export class FrozenTreeViewGrid {
     public async scrollDown()
     {
         if(this.fetchInProgress){
-            console.log("skip");
+            this.logString += "Skipping API call since prior API call is still in progress.\r\n";
             return;
-        }  
-        console.log("fetch");
+        }
+
+        this.logString += "await this.scrollGrid(this.firstVisibleTreeRow, this.recordsPerPage, this.firstVisibleTreeColumn, this.columnsPerPage);\r\n";
+        this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeRow", this.firstVisibleTreeRow);
+        this.logString += "\t" + ProxyHelper.formatVar("this.recordsPerPage", this.recordsPerPage);
+        this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeColumn", this.firstVisibleTreeColumn);
+        this.logString += "\t" + ProxyHelper.formatVar("this.columnsPerPage", this.columnsPerPage);
+
         this.fetchInProgress = true;
         const data = await this.scrollGrid(this.firstVisibleTreeRow, this.recordsPerPage, this.firstVisibleTreeColumn, this.columnsPerPage);
         this.renderGrid(data, this.firstVisibleTreeColumn, this.recordsPerPage, this.firstVisibleTreeColumn, this.columnsPerPage);
         this.fetchInProgress = false;
     }
+
+    /*
     private async scrollGrid(firstTreeRow: number, rowCount: number, firstTreeColumn: number, columnCount: number){
         const response = await fetch(`https://localhost:7264/api/GetAnalyticalData/scroll-grid?firstTreeRow=${firstTreeRow}&rowCount=${rowCount}&firstTreeColumn=${firstTreeColumn}&columnCount=${columnCount}`, {
             method: "GET",
@@ -222,6 +222,42 @@ export class FrozenTreeViewGrid {
         const data = await response.json();
         return data;
     }
+*/
+
+    private async scrollGrid(firstTreeRow: number, rowCount: number, firstTreeColumn: number, columnCount: number) {
+
+        this.logString += "https://localhost:7264/api/GetAnalyticalData/scroll-grid\r\n";
+        this.logString += "\t" + ProxyHelper.formatVar("firstTreeRow", firstTreeRow);
+        this.logString += "\t" + ProxyHelper.formatVar("rowCount", rowCount);
+        this.logString += "\t" + ProxyHelper.formatVar("firstTreeColumn", firstTreeColumn);
+        this.logString += "\t" + ProxyHelper.formatVar("columnCount", columnCount);
+
+        let log1 = this.logString;
+        console.log(log1);
+
+        const response = await fetch("https://localhost:7264/api/GetAnalyticalData/scroll-grid", {
+            method: "POST",
+            credentials: "include", // Ensures cookies (session) are sent
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                firstTreeRow,
+                rowCount,
+                firstTreeColumn,
+                columnCount,
+                log1
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API request failed with status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+    }
+
     renderGrid(data: any,startRow: number, endRow: number, startCol: number, endCol: number) {
 
         // Clear the current content
@@ -354,7 +390,7 @@ export class FrozenTreeViewGrid {
         clickedNode_childRecordCount: number,
         clickedNode_customSortID: number
     ): Promise<any> {
-        
+
         const BASE_URL = "https://localhost:7264/api/GetAnalyticalData"; // Replace with your actual API base URL
         const endpoint = `${BASE_URL}/expand-node`;
     
@@ -407,52 +443,6 @@ export class FrozenTreeViewGrid {
         }
     }
     
-    /*
-    async expandNode(
-        firstTreeRow: number,
-        rowCount: number,
-        firstTreeColumn: number,
-        columnCount: number,
-        clickedNode_parentID: number,
-        clickedNode_ID: number,
-        clickedNode_treeLevel: number,
-        clickedNode_childRecordCount: number,
-        clickedNode_customSortID: number
-    ): Promise<any> {
-        const BASE_URL = "https://localhost:7264/api/GetAnalyticalData"; // Replace with your actual API base URL
-        const endpoint = `${BASE_URL}/expand-node`;
-    
-        const url = new URL(endpoint);
-        url.searchParams.append("firstTreeRow", firstTreeRow.toString());
-        url.searchParams.append("rowCount", rowCount.toString());
-        url.searchParams.append("firstTreeColumn", firstTreeColumn.toString());
-        url.searchParams.append("columnCount", columnCount.toString());
-        url.searchParams.append("clickedNode_parentID", clickedNode_parentID.toString());
-        url.searchParams.append("clickedNode_ID", clickedNode_ID.toString());
-        url.searchParams.append("clickedNode_treeLevel", clickedNode_treeLevel.toString());
-        url.searchParams.append("clickedNode_childRecordCount", clickedNode_childRecordCount.toString());
-        url.searchParams.append("clickedNode_customSortID", clickedNode_customSortID.toString());
-    
-        try {
-            const response = await fetch(url.toString(), {
-                method: "GET",
-                credentials: "include", // Ensures cookies (session) are sent
-                headers: {
-                    "Accept": "application/json"
-                }
-            });
-    
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-    
-            return await response.json();
-        } catch (error) {
-            console.error("Error calling expandNode:", error);
-            throw error;
-        }
-    }
-    */
     async toggleChildRecords(arrow: SVGElement, row: HTMLElement & { label?: HTMLElement, arrow?: SVGElement }) {
         // When the user clicks the arrow of a node to expand or contract its child nodes
 
