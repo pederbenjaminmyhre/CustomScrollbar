@@ -1,4 +1,5 @@
 import { FrozenTreeViewLayout } from './FrozenTreeViewLayout';
+import { ProxyHelper } from './ProxyHelper'; // used for logging variable name and value
 
 export class FrozenTreeViewHScrollbar {
   public svgLeftArrow: SVGSVGElement;
@@ -24,11 +25,21 @@ export class FrozenTreeViewHScrollbar {
     this.layout.horizontalScrollbar.appendChild(this.svgLeftArrow);
 
     this.svgLeftArrow.addEventListener('click', () => {
-      console.log("Left arrow clicked");
-      let grid = this.layout.frozenTreeView.grid;
-      let columnIncrement = -grid.scrollColumnIncrement;
-      grid.firstVisibleTreeColumn = grid.firstVisibleTreeColumn + columnIncrement;
-      grid.scrollDown();
+        console.log("Left arrow clicked");
+        let grid = this.layout.frozenTreeView.grid;
+        let columnIncrement = -grid.scrollColumnIncrement;
+        let firstVisibleTreeColumn = grid.firstVisibleTreeColumn;
+        grid.firstVisibleTreeColumn = firstVisibleTreeColumn + columnIncrement;
+
+        grid.logString = "";
+        grid.logString += "FrozenTreeViewHScrollbar.svgLeftArrow.addEventListener('click')\r\n"
+        grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeColumn", firstVisibleTreeColumn);
+        grid.logString += "\t" + ProxyHelper.formatVar("columnIncrement", columnIncrement);
+        grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeColumn", grid.firstVisibleTreeColumn);
+
+        grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
+        grid.scrollDown();
     });
 
     // Create SVG right arrow
@@ -51,7 +62,17 @@ export class FrozenTreeViewHScrollbar {
       console.log("Right arrow clicked");
       let grid = this.layout.frozenTreeView.grid;
       let columnIncrement = grid.scrollColumnIncrement;
+      let firstVisibleTreeColumn = grid.firstVisibleTreeColumn;
       grid.firstVisibleTreeColumn = grid.firstVisibleTreeColumn + columnIncrement;
+
+      grid.logString = "";
+      grid.logString += "FrozenTreeViewHScrollbar.svgRightArrow.addEventListener('click')\r\n";
+      grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeColumn", firstVisibleTreeColumn);
+      grid.logString += "\t" + ProxyHelper.formatVar("columnIncrement", columnIncrement);
+      grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeColumn", grid.firstVisibleTreeColumn);
+
+      grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
       grid.scrollDown();
 
     });
@@ -82,54 +103,84 @@ export class FrozenTreeViewHScrollbar {
     this.thumb.addEventListener('mousedown', this.onThumbMouseDown.bind(this));
   }
 
-  private onThumbMouseDown(event: MouseEvent) {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startLeft = this.thumb.offsetLeft;
+    private onThumbMouseDown(event: MouseEvent) {
+        event.preventDefault();
+        const startX = event.clientX;
+        const startLeft = this.thumb.offsetLeft;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      let newLeft = startLeft + deltaX;
-      const maxLeft = this.thumbTrack.clientWidth - this.thumb.clientWidth;
-      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-      this.thumb.style.left = `${newLeft}px`;
+        const onMouseMove = (moveEvent: MouseEvent) => {
 
-      // Log the left position of the thumb and the width difference
-      console.log(`Thumb left position: ${newLeft}px`);
-      console.log(`Width difference: ${this.thumbTrack.getBoundingClientRect().width - this.thumb.clientWidth}px`);
+            // Slide the thumb
+            const deltaX = moveEvent.clientX - startX;
+            let newLeft = startLeft + deltaX;
+            const maxLeft = this.thumbTrack.clientWidth - this.thumb.clientWidth;
+            let thumbLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            this.thumb.style.left = `${newLeft}px`;
 
-      let grid = this.layout.frozenTreeView.grid;
-      grid.firstVisibleTreeColumn = Math.floor((grid.virtualColumnCount*newLeft)/(this.thumbTrack.getBoundingClientRect().width - this.thumb.clientWidth));
-      if(grid.firstVisibleTreeColumn == 0) grid.firstVisibleTreeColumn = 1;
-      console.log(`${grid.firstVisibleTreeColumn} = Math.floor((${grid.virtualColumnCount}*${newLeft})/(${this.thumbTrack.getBoundingClientRect().width} - ${this.thumb.clientWidth}));`);
-      grid.scrollDown();
-    };
 
-    const onMouseUp = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
+            let grid = this.layout.frozenTreeView.grid;
+            let leftRight = (deltaX > 0 ) ? "Right" : "Left";
+            let netSliderWidth = Math.floor(this.thumbTrack.getBoundingClientRect().width - this.thumb.clientWidth);
+            grid.firstVisibleTreeColumn = Math.floor(grid.virtualColumnCount*(thumbLeft/netSliderWidth));
+            grid.firstVisibleTreeColumn = (grid.firstVisibleTreeColumn < 1) ? 1 : grid.firstVisibleTreeColumn;
 
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }
+            grid.logString = "";
+            grid.logString += `**Dragged HScrollbar ${leftRight}**\r\n`;
+            grid.logString += ` thumbLeft: ${thumbLeft}\r\n`;
+            grid.logString += ` netSliderWidth: ${netSliderWidth}\r\n`;
+            grid.logString += ` grid.virtualColumnCount: ${grid.virtualColumnCount}\r\n`;
+            grid.logString += ` grid.firstVisibleTreeColumn: ${grid.firstVisibleTreeColumn}\r\n`;
+    
+            grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
 
-  private onThumbTrackClick(event: MouseEvent) {
-    const thumbRect = this.thumb.getBoundingClientRect();
-    const trackRect = this.thumbTrack.getBoundingClientRect();
+            grid.scrollDown();
+        };
 
-    if (event.clientX < thumbRect.left) {
-      console.log("Page left");
-      let grid = this.layout.frozenTreeView.grid;
-      let columnIncrement = -(grid.columnsPerPage - 1);
-      grid.firstVisibleTreeColumn = grid.firstVisibleTreeColumn + columnIncrement;
-      grid.scrollDown();
-    } else if (event.clientX > thumbRect.right) {
-      console.log("Page right");
-      let grid = this.layout.frozenTreeView.grid;
-      let columnIncrement = (grid.columnsPerPage - 1);
-      grid.firstVisibleTreeColumn = grid.firstVisibleTreeColumn + columnIncrement;
-      grid.scrollDown();
+        const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     }
-  }
+
+    private onThumbTrackClick(event: MouseEvent) {
+        const thumbRect = this.thumb.getBoundingClientRect();
+        const trackRect = this.thumbTrack.getBoundingClientRect();
+
+        if (event.clientX < thumbRect.left) {
+            console.log("Page left");
+            let grid = this.layout.frozenTreeView.grid;
+            let columnIncrement = -(grid.columnsPerPage - 1);
+            let firstVisibleTreeColumn = grid.firstVisibleTreeColumn;
+            grid.firstVisibleTreeColumn = firstVisibleTreeColumn + columnIncrement;
+
+            grid.logString = "";
+            grid.logString += "FrozenTreeViewHScrollbar.onThumbTrackClick() **Page Left**\r\n";
+            grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeColumn);
+            grid.logString += "\t" + ProxyHelper.formatVar("recordIncrement", columnIncrement);
+            grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeColumn", grid.firstVisibleTreeColumn);
+      
+            grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
+            grid.scrollDown();
+        } else if (event.clientX > thumbRect.right) {
+            console.log("Page right");
+            let grid = this.layout.frozenTreeView.grid;
+            let columnIncrement = (grid.columnsPerPage - 1);
+            let firstVisibleTreeColumn = grid.firstVisibleTreeColumn;
+            grid.firstVisibleTreeColumn = firstVisibleTreeColumn + columnIncrement;
+
+            grid.logString = "";
+            grid.logString += "FrozenTreeViewHScrollbar.onThumbTrackClick() **Page Right**\r\n";
+            grid.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeRow", firstVisibleTreeColumn);
+            grid.logString += "\t" + ProxyHelper.formatVar("recordIncrement", columnIncrement);
+            grid.logString += "\t" + ProxyHelper.formatVar("FrozenTreeViewGrid.firstVisibleTreeColumn", grid.firstVisibleTreeColumn);
+      
+            grid.logString += "FrozenTreeViewGrid.scrollDown()\r\n"
+
+            grid.scrollDown();
+        }
+    }
 }

@@ -69,12 +69,32 @@ export class FrozenTreeViewGrid {
         else { // Horizontal scrolling
             if (event.deltaY > 0) {
                 let columnIncrement = this.columnsPerPage - 1;
-                this.firstVisibleTreeColumn = this.firstVisibleTreeColumn + columnIncrement;
+                let firstVisibleTreeColumn = this.firstVisibleTreeColumn;
+                this.firstVisibleTreeColumn = firstVisibleTreeColumn + columnIncrement;
+
+                this.logString = "";
+                this.logString += "**WheelTurn Right**\r\n";
+                this.logString += "onWheelTurn();\r\n";
+                this.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeColumn", firstVisibleTreeColumn);
+                this.logString += "\t" + ProxyHelper.formatVar("columnIncrement", columnIncrement);
+                this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeColumn", this.firstVisibleTreeColumn);
+                this.logString += "this.scrollDown();\r\n";
+
                 this.scrollDown();
             }
             if (event.deltaY < 0) {
                 let columnIncrement = this.columnsPerPage - 1;
-                this.firstVisibleTreeColumn = this.firstVisibleTreeColumn - columnIncrement;
+                let firstVisibleTreeColumn = this.firstVisibleTreeColumn;
+                this.firstVisibleTreeColumn = firstVisibleTreeColumn - columnIncrement;
+
+                this.logString = "";
+                this.logString += "**WheelTurn Left**\r\n";
+                this.logString += "onWheelTurn();\r\n";
+                this.logString += "\t" + ProxyHelper.formatVar("firstVisibleTreeColumn", firstVisibleTreeColumn);
+                this.logString += "\t" + ProxyHelper.formatVar("columnIncrement", columnIncrement);
+                this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeColumn", this.firstVisibleTreeColumn);
+                this.logString += "this.scrollDown();\r\n";
+
                 this.scrollDown();
             }
         }
