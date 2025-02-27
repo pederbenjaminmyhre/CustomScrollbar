@@ -227,23 +227,6 @@ export class FrozenTreeViewGrid {
         this.fetchInProgress = false;
     }
 
-    /*
-    private async scrollGrid(firstTreeRow: number, rowCount: number, firstTreeColumn: number, columnCount: number){
-        const response = await fetch(`https://localhost:7264/api/GetAnalyticalData/scroll-grid?firstTreeRow=${firstTreeRow}&rowCount=${rowCount}&firstTreeColumn=${firstTreeColumn}&columnCount=${columnCount}`, {
-            method: "GET",
-            credentials: "include", // Ensures cookies (session) are sent
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-        if (!response.ok) {
-            throw new Error(`API request failed with status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data;
-    }
-*/
-
     private async scrollGrid(firstTreeRow: number, rowCount: number, firstTreeColumn: number, columnCount: number) {
 
         this.logString += "https://localhost:7264/api/GetAnalyticalData/scroll-grid\r\n";
@@ -301,10 +284,15 @@ export class FrozenTreeViewGrid {
     
         if (data) {
 
+            let previousFrozenRow : HTMLElement & { label?: HTMLElement, arrow?: SVGElement } | null = null;
+
             // records
             for (let row = 0; row < data.length; row++) {
 
                 let treeLevel: number = data[row]["TreeLevel"];
+                if(previousFrozenRow && treeLevel > parseInt(previousFrozenRow.dataset.TreeLevel || '0')){
+                    previousFrozenRow.arrow?.classList.add('rotated');
+                }
                 let hasChildren: boolean;
                 let indentPixels: string;
 
@@ -395,6 +383,8 @@ export class FrozenTreeViewGrid {
 
                     columnIndex=columnIndex + 1;
                 }
+
+                previousFrozenRow = frozenRow;
             }
         }
     }
@@ -413,6 +403,70 @@ export class FrozenTreeViewGrid {
 
         const BASE_URL = "https://localhost:7264/api/GetAnalyticalData"; // Replace with your actual API base URL
         const endpoint = `${BASE_URL}/expand-node`;
+    
+        this.logString += `${endpoint}\r\n`;
+        this.logString += "\t" + ProxyHelper.formatVar("firstTreeRow", firstTreeRow);
+        this.logString += "\t" + ProxyHelper.formatVar("rowCount", rowCount);
+        this.logString += "\t" + ProxyHelper.formatVar("firstTreeColumn", firstTreeColumn);
+        this.logString += "\t" + ProxyHelper.formatVar("columnCount", columnCount);
+        this.logString += "\t" + ProxyHelper.formatVar("clickedNode_parentID", clickedNode_parentID);
+        this.logString += "\t" + ProxyHelper.formatVar("clickedNode_ID", clickedNode_ID);
+        this.logString += "\t" + ProxyHelper.formatVar("clickedNode_treeLevel", clickedNode_treeLevel);
+        this.logString += "\t" + ProxyHelper.formatVar("clickedNode_childRecordCount", clickedNode_childRecordCount);
+        this.logString += "\t" + ProxyHelper.formatVar("clickedNode_customSortID", clickedNode_customSortID);
+
+        console.log(this.logString);
+        let log1 = this.logString;
+
+        const requestData = {
+            firstTreeRow,
+            rowCount,
+            firstTreeColumn,
+            columnCount,
+            clickedNode_parentID,
+            clickedNode_ID,
+            clickedNode_treeLevel,
+            clickedNode_childRecordCount,
+            clickedNode_customSortID,
+            log1
+        };
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                credentials: "include", // Ensures cookies (session) are sent
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(requestData)
+            });
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+    
+            return await response.json();
+        } catch (error) {
+            console.error("Error calling expandNode:", error);
+            throw error;
+        }
+    }
+
+    async contractNode(
+        firstTreeRow: number,
+        rowCount: number,
+        firstTreeColumn: number,
+        columnCount: number,
+        clickedNode_parentID: number,
+        clickedNode_ID: number,
+        clickedNode_treeLevel: number,
+        clickedNode_childRecordCount: number,
+        clickedNode_customSortID: number
+    ): Promise<any> {
+
+        const BASE_URL = "https://localhost:7264/api/GetAnalyticalData"; // Replace with your actual API base URL
+        const endpoint = `${BASE_URL}/contract-node`;
     
         this.logString += `${endpoint}\r\n`;
         this.logString += "\t" + ProxyHelper.formatVar("firstTreeRow", firstTreeRow);
@@ -506,33 +560,39 @@ export class FrozenTreeViewGrid {
         }
         else { // Arrow points down (meaning that the clicked node is expanded)
             arrow.classList.remove('rotated'); // Remove the rotated class to rotate the arrow right
+
+            const parentId = parseInt(row.dataset.ParentID || '0', 10);
+            const id = parseInt(row.dataset.ID || '0', 10);
+            const treeLevel = parseInt(row.dataset.TreeLevel || '0', 10);
+            const childCount = parseInt(row.dataset.ChildCount || '0', 10);
+            const customSort = parseInt(row.dataset.CustomSort || '0', 10);
+            
+            this.logString += 'FrozenTreeViewGrid.contractNode();\r\n'
+            this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeRow", this.firstVisibleTreeRow);
+            this.logString += "\t" + ProxyHelper.formatVar("this.recordsPerPage", this.recordsPerPage);
+            this.logString += "\t" + ProxyHelper.formatVar("this.firstVisibleTreeColumn", this.firstVisibleTreeColumn);
+            this.logString += "\t" + ProxyHelper.formatVar("this.columnsPerPage", this.columnsPerPage);
+            this.logString += "\t" + ProxyHelper.formatVar("parentId", parentId);
+            this.logString += "\t" + ProxyHelper.formatVar("id", id);
+            this.logString += "\t" + ProxyHelper.formatVar("treeLevel", treeLevel);
+            this.logString += "\t" + ProxyHelper.formatVar("childCount", childCount);
+            this.logString += "\t" + ProxyHelper.formatVar("customSort", customSort);
+
+            const data = await this.contractNode(
+                this.firstVisibleTreeRow,
+                this.recordsPerPage,
+                this.firstVisibleTreeColumn,
+                this.columnsPerPage,
+                parentId,
+                id,
+                treeLevel,
+                childCount,
+                customSort
+            );
+            
+            this.renderGrid(data, this.firstVisibleTreeColumn, this.recordsPerPage, this.firstVisibleTreeColumn, this.columnsPerPage);
         }
 
-
-        /*
-        const parentId = parseInt(row.dataset.recordId!); // Get the clicked node's record id
-        const treeLevel = parseInt(row.dataset.treeLevel!) + 1; // Get the clicked node's treeLevel and add 1
-
-        if (isRight) { // Arrow points right (meaning that the clicked node is contracted)
-            arrow.style.transform = 'rotate(90deg)'; // Rotate arrow down
-            const childRecords = await tblTreeNode.getRecordsByParentId(parentId, treeLevel); // Get child records from cache
-            childRecords.sort((a, b) => a.Name.localeCompare(b.Name)); // Sort child records
-            let lastInsertedRow = row; 
-            childRecords.forEach(childRecord => { // For each child record
-                const childRow = createRow(childRecord, treeLevel); // Create child node
-                lastInsertedRow.parentNode!.insertBefore(childRow, lastInsertedRow.nextSibling); // Insert child node in treeview
-                lastInsertedRow = childRow;
-            });
-        } else { // Arrow points down (meaning that the clicked node is expanded)
-            arrow.style.transform = 'rotate(0deg)'; // Rotate arrow right
-            let sibling = row.nextSibling as HTMLElement | null;
-            while (sibling && parseInt(sibling.dataset.treeLevel!) > parseInt(row.dataset.treeLevel!)) { // Remove each childrow
-                const nextSibling = sibling.nextSibling as HTMLElement | null;
-                sibling.remove();
-                sibling = nextSibling;
-            }
-        }
-            */
     }
 
     createGridCell(rowIndex: number, columnIndex: number, cellContent: string): HTMLElement {
