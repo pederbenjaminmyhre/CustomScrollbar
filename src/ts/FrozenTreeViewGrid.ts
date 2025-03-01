@@ -1,6 +1,7 @@
 import { FrozenTreeView } from './FrozenTreeView';
 import { ProxyHelper } from './ProxyHelper'; // used for logging variable name and value
 export class FrozenTreeViewGrid {
+
     public treeView: FrozenTreeView;
     public textHeight: number = 16;
     public columnWidth: number = 100;
@@ -12,8 +13,7 @@ export class FrozenTreeViewGrid {
     public verticalArrow_RowIncrement: number = 10;
     public scrollColumnIncrement: number = 1;
     public fetchInProgress: boolean = false;
-        public logString: string = "";
-
+    public logString: string = "";
 
     constructor(treeView: FrozenTreeView) {
         this.treeView = treeView;
@@ -26,6 +26,7 @@ export class FrozenTreeViewGrid {
             console.log(`Mouse wheel moved over #myElement: deltaY=${event.deltaY}`);
             this.onWheelTurn(event);
         });
+
         // FrozenBody wheelTurn
         this.treeView.layout.frozenBody.addEventListener("wheel", (event: WheelEvent) => {
             console.log(`Mouse wheel moved over #myElement: deltaY=${event.deltaY}`);
@@ -111,18 +112,19 @@ export class FrozenTreeViewGrid {
 
         const { recordCount, gridData } = await this.initializeGrid(parentId, this.recordsPerPage, this.columnsPerPage);
         this.virtualRecordCount = recordCount; // number of rows in the virtual tree at it's current drill state.
-        console.log(`virtualRecordCount ${this.virtualRecordCount} updated during initializeAndRenderGrid()`);
+        console.log(`this.virtualRecordCount: ${this.virtualRecordCount}`);
+
         this.renderGrid(gridData, 1, this.recordsPerPage, 1, this.columnsPerPage);
     }
 
     // The height of the "scrollableBody" div
     get gridHeight(): number {
-        return this.treeView.layout.scrollableBody.getBoundingClientRect().height;
+        return Math.floor(this.treeView.layout.scrollableBody.getBoundingClientRect().height);
     }
 
     // The width of the "scrollableBody" div
     get gridWidth(): number {
-        return this.treeView.layout.scrollableBody.getBoundingClientRect().width;
+        return Math.floor(this.treeView.layout.scrollableBody.getBoundingClientRect().width);
     }
 
     // The height of the vertical scrollbar
@@ -446,7 +448,12 @@ export class FrozenTreeViewGrid {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
     
-            return await response.json();
+            const responseJson = await response.json();
+            this.virtualRecordCount = responseJson.recordCount;
+            console.log(`this.virtualRecordCount: ${this.virtualRecordCount}`);
+
+            return responseJson.data;
+            //return await response.json();
         } catch (error) {
             console.error("Error calling expandNode:", error);
             throw error;
@@ -510,7 +517,12 @@ export class FrozenTreeViewGrid {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
     
-            return await response.json();
+            const responseJson = await response.json();
+            this.virtualRecordCount = responseJson.recordCount;
+            console.log(`this.virtualRecordCount: ${this.virtualRecordCount}`);
+
+            return responseJson.data;
+            //return await response.json();
         } catch (error) {
             console.error("Error calling expandNode:", error);
             throw error;
@@ -592,7 +604,6 @@ export class FrozenTreeViewGrid {
             
             this.renderGrid(data, this.firstVisibleTreeColumn, this.recordsPerPage, this.firstVisibleTreeColumn, this.columnsPerPage);
         }
-
     }
 
     createGridCell(rowIndex: number, columnIndex: number, cellContent: string): HTMLElement {
